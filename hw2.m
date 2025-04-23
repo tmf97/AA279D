@@ -1,4 +1,3 @@
-%
 close all
 MU = 3.9860043550702260E+14; % m^3/s^2
 
@@ -18,7 +17,7 @@ dr0 = s(9);
 MU = 3.9860043550702260E+14; % m^3/s^2
 factor = -MU / (((r0+x)^2 + y^2 + z^2)^(3/2));
 
-ddr0 = r0 * dtheta^2 - MU/r0^2;
+ddr0 = r0 * dtheta^2 - MU/(r0^2);
 ddtheta = -2*dr0*dtheta/r0;
 
 ddx = factor * (r0 + x) + MU/(r0^2) + 2*dtheta*dy + ddtheta*y + dtheta^2*x;
@@ -48,7 +47,6 @@ argp1 = argp0; % Argument of periapsis
 nu1 = nu0-1e-2; % True Anomaly
 
 
-dnu0 = (1+e0 * cos(deg2rad(nu0)))^2 * sqrt(MU / (a0^3 * (1-e0^2)^3));
 
 
 % convert initial Keplerian orbital elements to cartesian
@@ -67,11 +65,16 @@ nhat = hhat;
 that = cross(nhat, rhat);
 rotation_matrix = [rhat, that, nhat];
 
+dnu0 = norm(h0) / (norm(r0)^2);
+
+
 % convert quantities into RTN
 rho_RTN = rotation_matrix * rho_ECI;
 omega_rtn_in_eci = nhat * dnu0;
-drho_RTN = drho_ECI - cross(omega_rtn_in_eci,rho_ECI);
-v0_RTN = rotation_matrix * v0;
+drho_RTN_expressed_ECI = drho_ECI - cross(omega_rtn_in_eci,rho_ECI);
+drho_RTN = rotation_matrix * drho_RTN_expressed_ECI;
+v0_RTN_expressed_in_ECI = v0 - cross(omega_rtn_in_eci, r0) ; % fixme 
+v0_RTN = rotation_matrix * v0_RTN_expressed_in_ECI;
 
 % and compute intial conditions from there
 x0 = rho_RTN(1);
@@ -88,13 +91,13 @@ initial_conditions = [x0, y0, z0, vx0, vy0, vz0, dtheta, radius0, dradius0].';
 
 
 % propagate
-num_orbits = 10;
+num_orbits = 0.5;
 Tp = 2*pi*sqrt(a0^3 / MU); % BEWARE: units must be seconds!
 
 t_end = num_orbits*Tp; 
-t = linspace(0, t_end, t_end / 30);
+t = linspace(0, t_end, t_end / 60);
 
-[~, s] = ode89(@ferm, t, initial_conditions);
+[~, s] = ode45(@ferm, t, initial_conditions);
 rs = s(:,1);
 ts = s(:,2);
 ns = s(:,3);
@@ -106,8 +109,8 @@ vns = s(:,6);
 
 
 % now do it again but keplerian
-nus0 = keplerian_propagation(nu0, e0, a0, t);
-nus1 = keplerian_propagation(nu1, e1, a1, t);
+nus0 = keplerian_propagation(deg2rad(nu0), e0, a0, t);
+nus1 = keplerian_propagation(deg2rad(nu1), e1, a1, t);
 states0 = zeros(6, length(t));
 states1 = zeros(6, length(t));
 for i = 1:length(t)
@@ -141,8 +144,8 @@ for i = 1:length(t)
     rhos_RTN(:, i) = rot_mat0 * rhos_ECI(:, i);
     dnu = (1+e0 * cos(nus0(i)))^2 * sqrt(MU / (a0^3 * (1-e0^2)^3));
     omega_rtn_in_eci = nhats0(:,i) * dnu;
-    drhos_RTN(:, i) =  drhos_ECI(:,i) - cross(omega_rtn_in_eci, rhos_ECI(:, i));
-    
+    drho_RTN_expressed_ECI =  drhos_ECI(:,i) - cross(omega_rtn_in_eci, rhos_ECI(:, i));
+    drhos_RTN(:, i) = rot_mat0 * drho_RTN_expressed_ECI;
 end
 
 rs_kep = rhos_RTN(1,:);
@@ -159,16 +162,17 @@ figure;
 plot_t = t / Tp;
 subplot(4,2,1);
 hold on
-plot(rs / a0, ts/ a0);
-plot(rs_kep/ a0, ts_kep / a0);
+plot(rs , ts, 'DisplayName', 'Relative');
+plot(rs_kep, ts_kep , 'DisplayName', 'Keplerian');
 xlabel("x/a")
 ylabel("y/a")
 grid on;
+legend
 
 subplot(4,2,3);
 hold on
-plot(ts / a0, ns/ a0);
-plot(ts_kep / a0, ns_kep / a0);
+plot(ts , ns);
+plot(ts_kep , ns_kep );
 xlabel("y/a")
 ylabel("z/a")
 grid on;
@@ -176,8 +180,8 @@ grid on;
 
 subplot(4,2,5);
 hold on
-plot(rs/ a0, ns/ a0);
-plot(rs_kep / a0, ns_kep / a0);
+plot(rs, ns);
+plot(rs_kep , ns_kep );
 xlabel("x/a")
 ylabel("z/a")
 grid on;
@@ -220,6 +224,16 @@ xlabel("Vx (m/s)")
 ylabel("Vz (m/s)")
 grid on;
 
+
+% subplot(4,2,8);
+% hold on
+% plot(plot_t, vrs, 'DisplayName', "Vr");
+% plot(plot_t, vts, 'DisplayName', "Vt");
+% plot(plot_t, vns, 'DisplayName', "Vn");
+% ylabel("Position [m]")
+% xlabel("Number of Orbits")
+% legend;
+% grid on;
 
 subplot(4,2,8);
 hold on

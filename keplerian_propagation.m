@@ -2,7 +2,7 @@ function [nus] = keplerian_propagation(nu, e, a, t)
 %KEPLERIAN PROPAGATION 
 %   Propagates true anomaly
 %   Inputs:
-%     nu - true anomaly [deg]
+%     nu - true anomaly [rad]
 %     e - eccentricity [-]
 %     a - semi-major axis [m]
 %     t - time steps array [s]
@@ -10,7 +10,7 @@ function [nus] = keplerian_propagation(nu, e, a, t)
 %     nus - 
 
 MU = 3.9860043550702260E+14; % m^3/s^2
-M = ecc2mean(true2ecc(deg2rad(nu), e),e);
+M = ecc2mean(true2ecc(nu, e),e);
 
 % propagate orbit
 n = mean_motion(MU, a);
