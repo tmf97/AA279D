@@ -50,6 +50,7 @@ function mean_elem = osc2mean(osc_elem,J2_flag)
         
         % Convert to mean keplerian elements
         mean_elem = equioe2koe(equi_c_mean);
+        mean_elem(4) = wrapTo2Pi(mean_elem(4));
     
     % Without J2, elements are equal
     else

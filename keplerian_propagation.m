@@ -7,7 +7,7 @@ function [nus] = keplerian_propagation(nu, e, a, t)
 %     a - semi-major axis [m]
 %     t - time steps array [s]
 %   Outputs:
-%     nus - 
+%     nus - true anomalies at the requested times t [rad]
 
 MU = 3.9860043550702260E+14; % m^3/s^2
 M = ecc2mean(true2ecc(nu, e),e);

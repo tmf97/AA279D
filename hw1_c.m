@@ -88,16 +88,6 @@ hold off
 
 
 
-% s is the state vector of position and velocity
-function ds = newton3d(~,s)
-MU = 3.9860043E+05; % km^3/s^2
-r = s(1:3);
-v = s(4:6);
-ddr = -MU * r/(norm(r)^3);
-ds = [v; ddr];
-end
-
-
 function ds = newton3d_J2(~,s)
 Re = 6378.1; % km
 MU = 3.9860043550702260E+05; % km^3/s^2

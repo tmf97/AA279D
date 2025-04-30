@@ -50,8 +50,8 @@ nu1 = nu0-1e-2; % True Anomaly
 
 
 % convert initial Keplerian orbital elements to cartesian
-[r0, v0] = keplerian2ijk(a0, e0, i0, raan0, argp0, nu0);
-[r1, v1] = keplerian2ijk(a1, e1, i1, raan1, argp1, nu1);
+[r0, v0] = koe2pv(a0, e0, i0, raan0, argp0, nu0);
+[r1, v1] = koe2pv(a1, e1, i1, raan1, argp1, nu1);
 
 % compute relative initial conditions
 rho_ECI = r1 - r0;
@@ -114,8 +114,8 @@ nus1 = keplerian_propagation(deg2rad(nu1), e1, a1, t);
 states0 = zeros(6, length(t));
 states1 = zeros(6, length(t));
 for i = 1:length(t)
-    [rijk0, vijk0] = keplerian2ijk(a0, e0, i0, raan0, argp0, rad2deg(nus0(i)));
-    [rijk1, vijk1] = keplerian2ijk(a1, e1, i1, raan1, argp1, rad2deg(nus1(i)));
+    [rijk0, vijk0] = koe2pv(a0, e0, i0, raan0, argp0, rad2deg(nus0(i)));
+    [rijk1, vijk1] = koe2pv(a1, e1, i1, raan1, argp1, rad2deg(nus1(i)));
     state0 = [rijk0; vijk0];
     state1 = [rijk1; vijk1];
 

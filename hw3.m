@@ -23,8 +23,8 @@ argp1 = argp0; % Argument of periapsis
 nu1 = deg2rad(0.01); % True Anomaly, degrees
 
 % check that the difference is less than 0.001 of r0
-[r0, v0] = keplerian2ijk(a0, e0, rad2deg(i0), rad2deg(raan0), rad2deg(argp0), rad2deg(nu0));
-[r1, v1] = keplerian2ijk(a1, e1, rad2deg(i1), rad2deg(raan1), rad2deg(argp1), rad2deg(nu1));
+[r0, v0] = koe2pv(a0, e0, rad2deg(i0), rad2deg(raan0), rad2deg(argp0), rad2deg(nu0));
+[r1, v1] = koe2pv(a1, e1, rad2deg(i1), rad2deg(raan1), rad2deg(argp1), rad2deg(nu1));
 
 
 rho_ECI = r1-r0;
@@ -183,8 +183,8 @@ e0 = 0.1;
 e1 = e0;
 
 % check that the difference is less than 0.001 of r0
-[r0, v0] = keplerian2ijk(a0, e0, rad2deg(i0), rad2deg(raan0), rad2deg(argp0), rad2deg(nu0));
-[r1, v1] = keplerian2ijk(a1, e1, rad2deg(i1), rad2deg(raan1), rad2deg(argp1), rad2deg(nu1));
+[r0, v0] = koe2pv(a0, e0, rad2deg(i0), rad2deg(raan0), rad2deg(argp0), rad2deg(nu0));
+[r1, v1] = koe2pv(a1, e1, rad2deg(i1), rad2deg(raan1), rad2deg(argp1), rad2deg(nu1));
 
 
 rho_ECI = r1-r0;
@@ -360,26 +360,6 @@ axis square;
 
 
 % part e - quasi-nonsingular ROE
-function dalpha_qns = quasi_nonsingular_roe(ac, Mc, wc, ec, raanc, ic, ad, Md, wd, ed, raand, id)
-% computes the quasi-nonsingular ROEs for a chief and deputy satellite.
-% a: semi-major axis
-% M: mean anomaly
-% w: argument of periapsis
-% e: eccentricity
-% raan: right ascension of the ascending node
-% i: inclination
-% The c or d postfix in the variable name determines whether it is the
-% chief or deputy spacecraft. 
-
-da = (ad-ac)/ac;
-dlambda = (Md + wd) - (Mc + wc) + (raand - raanc)*cos(ic);
-dex = ed * cos(wd) - ec*cos(wc);
-dey = ed*sin(wd) - ec*sin(wc);
-dix = id -ic;
-diy = (raand - raanc) * sin(ic);
-
-dalpha_qns = [da; dlambda; dex; dey; dix; diy;];
-end
 
 
 disp("Quasi-nonsingular ROEs:")
@@ -506,8 +486,8 @@ Ts_kep = zeros(size(times));
 Ns_kep = zeros(size(times));
 % spaghetti copy/paste code from above because I'm cooked
 for i = 1:length(t)
-[r0, v0] = keplerian2ijk(a0, e0, rad2deg(i0), rad2deg(raan0), rad2deg(argp0), rad2deg(nus0(i)));
-[r1, v1] = keplerian2ijk(a1, e1, rad2deg(i1), rad2deg(raan1), rad2deg(argp1), rad2deg(nus1(i)));
+[r0, v0] = koe2pv(a0, e0, rad2deg(i0), rad2deg(raan0), rad2deg(argp0), rad2deg(nus0(i)));
+[r1, v1] = koe2pv(a1, e1, rad2deg(i1), rad2deg(raan1), rad2deg(argp1), rad2deg(nus1(i)));
 
 rho_ECI = r1-r0;
 % define RTN frame
