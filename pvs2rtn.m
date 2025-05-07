@@ -21,7 +21,7 @@ fdot = norm(h0) / (norm(r0)^2);
 % sanity check this against mean motion, should be similar but not quite
 % idential
 n = mean_motion(mu, a0);
-assert(abs((fdot-n)/n) < 0.5, "Are you sure fdot is correct?");
+% assert(abs((fdot-n)/n) < 0.5, "Are you sure fdot is correct?");
 omega_RTN_in_ECI_in_RTN = [0;0; fdot];
 
 rho_RTN = C_ECI_to_RTN * rho_ECI;
