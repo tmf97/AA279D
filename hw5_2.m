@@ -15,9 +15,6 @@ opts = odeset("RelTol",1e-13,"AbsTol",1e-15);
 aoe_chief_i = mms1_ephem(:,1);
 aoe_deputy_i = mms2_ephem(:,1);
 
-% XXX: HACK
-% aoe_chief_i(end) = deg2rad(190);
-% aoe_deputy_i(end) = deg2rad(190);
 
 % convert osculating to mean
 maoe_chief_i = osc2mean(aoe_chief_i, 1);
@@ -136,12 +133,24 @@ for i = 1:length(maneuver_ts)+1
         states_chief(:, end) = [];
     end
 end
-
 % plot everything in RTN of the chief:
 mms2_rtns = zeros(3, length(states_chief));
 mms2_rtn_vs = zeros(3, length(states_chief));
+mean_roes = zeros(6, length(states_chief));
 for i=1:length(states_chief)
-    [mms2_rtns(:,i), mms2_rtn_vs(:,i)] = pvs2rtn(states_chief(1:3,i), states_chief(4:6,i), states_deputy(1:3,i), states_deputy(4:6,i), MU, a0);
+    r_chief = states_chief(1:3,i);
+    v_chief = states_chief(4:6,i);
+
+    r_deputy = states_deputy(1:3,i);
+    v_deputy = states_deputy(4:6,i);
+    [mms2_rtns(:,i), mms2_rtn_vs(:,i)] = pvs2rtn(r_chief, v_chief, r_deputy, v_deputy);
+    % compute KOEs for both chief and deputy
+    koe_chief = pv2koe([r_chief; v_chief], MU);
+    koe_deputy = pv2koe([r_deputy; v_deputy], MU);
+
+    moe_chief = osc2mean(koe_chief, 1);
+    moe_deputy = osc2mean(koe_deputy, 1);
+    mean_roes(:, i) = quasi_nonsingular_roe(moe_chief, moe_deputy);
 end
 
 Rs2 = mms2_rtns(1, :);
@@ -222,4 +231,45 @@ hold on
 plot(times, vecnorm(states_chief(1:3,:)));
 plot(times, vecnorm(states_deputy(1:3,:)));
 ylabel("[m]")
+
+
+% plot ROEs
+figure
+subplot(1,3,1)
+hold on
+plot(a0*mean_roes(2, :), a0*mean_roes(1, :), 'DisplayName', 'Trajectory')
+scatter(mean_roes_desired(2), mean_roes_desired(1), 'DisplayName', 'Target')
+scatter(a0*mean_roes(2, 1), a0*mean_roes(1, 1), 'DisplayName','Start');
+xlabel("$a \delta \lambda$ (m)")
+ylabel("$a \delta a$ (m)")
+grid on;
+axis square;
+
+hold off
+legend
+
+
+subplot(1,3,2)
+hold on
+plot(a0*mean_roes(3, :), a0*mean_roes(4, :))
+scatter(mean_roes_desired(3), mean_roes_desired(4))
+scatter(a0*mean_roes(3, 1), a0*mean_roes(4, 1));
+xlabel("$a \delta e_x$ (m)")
+ylabel("$a \delta e_y$ (m)")
+grid on;
+axis square;
+
+hold off
+
+subplot(1,3,3)
+hold on
+plot(a0*mean_roes(5, :), a0*mean_roes(6, :))
+scatter(mean_roes_desired(5), mean_roes_desired(6))
+scatter(a0*mean_roes(5, 1), a0*mean_roes(6, 1));
+xlabel("$a \delta i_x$ (m)")
+ylabel("$a \delta i_y$ (m)")
+grid on;
+axis square;
+
+hold off
 
