@@ -1,0 +1,18 @@
+function measurement_estimate = measurement_model(state_estimate, sigma)
+%MEASUREMENT_MODEL GPS Measurement model
+%   
+% Inputs:
+%   state_estimate  - state vector
+%   sigma           - standard deviation of noise
+%
+% Output:
+%   measurement_estimate     - estimate of measurement
+
+sigma_pseudorange = gps_noise(norm(state_estimate(1:3)));
+
+% FIXME: this doesn't feel right...we're adding in random noise every time
+% we call this function?
+noise = sigma.* randn(6,1) .* [1, 1, 1, 0.1, 0.1, 0.1].';
+
+measurement_estimate = state_estimate + noise;
+end

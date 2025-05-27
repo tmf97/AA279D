@@ -47,4 +47,5 @@ Phi = [
     0,  0,  0,  0,  1,  0;
     3.5*kappa*S*tau,    0, -4*kappa*ex*G*S*tau, -4*kappa*ey*G*S*tau, 2*kappa*T*tau, 1;
     ];
+
 end

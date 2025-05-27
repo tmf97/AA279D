@@ -1,4 +1,4 @@
-function [rho_RTN, rho_dot_RTN_in_RTN] = pvs2rtn(r0, v0, r1, v1, mu, a0)
+function [rho_RTN, rho_dot_RTN_in_RTN] = pvs2rtn(r0, v0, r1, v1)
 %PVS2RTN Convert Position/Velocity of Chief and Deputy to RTN
 %   Compute position and velocity of r1/v1 in the reference frame of 0.
 r0 = r0(:);
@@ -18,10 +18,7 @@ C_ECI_to_RTN = [rhat, that, nhat].';
 % fdot is the time derivative of true anomaly.
 % r^2 * fdot = h
 fdot = norm(h0) / (norm(r0)^2);
-% sanity check this against mean motion, should be similar but not quite
-% idential
-n = mean_motion(mu, a0);
-% assert(abs((fdot-n)/n) < 0.5, "Are you sure fdot is correct?");
+
 omega_RTN_in_ECI_in_RTN = [0;0; fdot];
 
 rho_RTN = C_ECI_to_RTN * rho_ECI;
