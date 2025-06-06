@@ -14,6 +14,7 @@ ic = alpha_chief(3);
 raanc = alpha_chief(4);
 wc = alpha_chief(5);
 nuc = alpha_chief(6);
+Mc = true2mean(nuc, ec);
 
 ad = alpha_deputy(1);
 ed = alpha_deputy(2);
@@ -21,9 +22,11 @@ id = alpha_deputy(3);
 raand = alpha_deputy(4);
 wd = alpha_deputy(5);
 nud = alpha_deputy(6);
+Md = true2mean(nud, ed);
 
 da = (ad-ac)/ac;
-dlambda = angdiff((nud + wd), (nuc + wc)) + (raand - raanc)*cos(ic);
+eta = sqrt(1-ec^2);
+dlambda = Md - Mc + eta*(wd - wc + (raand - raanc)*cos(ic));
 dex = ed*cos(wd) - ec*cos(wc);
 dey = ed*sin(wd) - ec*sin(wc);
 dix = id - ic;

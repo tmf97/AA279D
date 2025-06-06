@@ -11,6 +11,8 @@ ic = AOE_chief(3);
 Omegac = AOE_chief(4); % RAAN
 wc = AOE_chief(5); % argp
 nuc = AOE_chief(6); % true anomaly
+Mc = true2mean(nuc, ec);
+
 uc = wc + nuc; % argument of latitude of chief
 
 % unpack deputy array
@@ -22,7 +24,7 @@ dix = ROE_deputy(5);
 diy = ROE_deputy(6);
 
 % compute deputy absolute orbital elements
-ad = ac + da;
+ad = ac + ac*da;
 id = ic + dix;
 Omegad = Omegac + diy / sin(ic);
 
@@ -35,9 +37,14 @@ else
     ed = (dey + ec*sin(wc)) / sin(wd);
 end
 
-delta_u = dlambda - (Omegad - Omegac) * cos(ic);
-ud = uc + delta_u;
-nud = ud - wd;
+% delta_u = dlambda - (Omegad - Omegac) * cos(ic);
+% ud = uc + delta_u;
+% nud = ud - wd;
+
+% Chernick Modified ROEs:
+eta = sqrt(1-ec^2);
+Md = dlambda + Mc - eta * (wd-wc + (Omegad - Omegac)*cos(ic));
+nud = mean2true(Md, ed);
 
 AOE_deputy = [ad, ed, id, Omegad, wd, nud];
 end

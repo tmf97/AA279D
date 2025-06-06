@@ -1,6 +1,6 @@
 close all
 % chief AOEs
-AOE_chief = [63781000, 0.001, deg2rad(63.11885), deg2rad(356.7045), deg2rad(158.2343), deg2rad(0.1)];
+AOE_chief = [63781000, 0.001, deg2rad(30.11885), deg2rad(356.7045), deg2rad(158.2343), deg2rad(0.1)];
 ROEs = [0, 100, 50, 100, 30, 200]; % meters
 
 AOE_deputy = roe2aoe(AOE_chief, ROEs);

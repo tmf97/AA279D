@@ -44,22 +44,22 @@ wdot = kappa*Q;
 
 % assuming exi = exf = ex, eyi = eyf = ey.
 
-% Phi = [
-%     1,                              0,  0,                                  0,                                  0,                  0;
-%     -7*kappa*eta*P*t - (3/2)*n*t,   1,  7*kappa*ex*P*t/eta,                 7*kappa*ey*P*t/eta,                 -7*kappa*eta*S*t,   0;
-%     3.5*kappa*ey*Q*t,               0,  cos(wdot*t) - 4*kappa*ex*ey*G*Q*t,  -sin(wdot*t)-4*kappa*ey*ey*G*Q*t,   5*kappa*ey*S*t,     0;
-%     -3.5*kappa*ex*Q*t,              0,  sin(wdot*t) + 4*kappa*ex*ex*G*Q*t,  cos(wdot*t)-4*kappa*ey*ex*G*Q*t,    -5*kappa*ex*S*t,    0;
-%     0,                              0,  0,                                  0,                                  1,                  0;
-%     3.5*kappa*S*t,                  0,  -4*kappa*ex*G*S*t,                  -4*kappa*ey*G*S*t,                  2*kappa*T*t,        1;
-%     ];
+Phi = [
+    1,                              0,  0,                                  0,                                  0,                  0;
+    -7*kappa*eta*P*t - (3/2)*n*t,   1,  7*kappa*ex*P*t/eta,                 7*kappa*ey*P*t/eta,                 -7*kappa*eta*S*t,   0;
+    3.5*kappa*ey*Q*t,               0,  cos(wdot*t) - 4*kappa*ex*ey*G*Q*t,  -sin(wdot*t)-4*kappa*ey*ey*G*Q*t,   5*kappa*ey*S*t,     0;
+    -3.5*kappa*ex*Q*t,              0,  sin(wdot*t) + 4*kappa*ex*ex*G*Q*t,  cos(wdot*t)-4*kappa*ey*ex*G*Q*t,    -5*kappa*ex*S*t,    0;
+    0,                              0,  0,                                  0,                                  1,                  0;
+    3.5*kappa*S*t,                  0,  -4*kappa*ex*G*S*t,                  -4*kappa*ey*G*S*t,                  2*kappa*T*t,        1;
+    ];
 
 % assume near-circular orbits for now:
-Phi = [ 1,                      0,  0,              0,              0,              0;
-        -(7*kappa*E*P+3*n)*t/2, 1,  0,              0,              0,              0;
-        0,                      0,  cos(wdot*t),    -sin(wdot*t),   0,              0;
-        0,                      0,  sin(wdot*t),    cos(wdot*t),    0,              0;
-        0,                      0,  0,              0,              1,              0;
-        3.5*kappa*S*t,          0,  0,              0,              2*kappa*T*t,    1;
-];
+% Phi = [ 1,                      0,  0,              0,              0,              0;
+%         -(7*kappa*E*P+3*n)*t/2, 1,  0,              0,              0,              0;
+%         0,                      0,  cos(wdot*t),    -sin(wdot*t),   0,              0;
+%         0,                      0,  sin(wdot*t),    cos(wdot*t),    0,              0;
+%         0,                      0,  0,              0,              1,              0;
+%         3.5*kappa*S*t,          0,  0,              0,              2*kappa*T*t,    1;
+% ];
 end
 
