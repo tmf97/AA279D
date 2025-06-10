@@ -5,7 +5,7 @@
 
 close all; clear; clc;
 
-addpath('utils/');
+% addpath('utils/');
 addpath('mean_osc/');
 
 % Constants
@@ -26,17 +26,17 @@ options = odeset('RelTol',1e-12,'AbsTol',1e-12); % tolerances
 % Initial Conditions 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Initial chief absolute singular orbital parameters
-sma_c  = 6892.927e3;      % semi-major axis [m] %sma_c = 10000e3;
-ecc_c  = 1e-4;            % eccentricity component in I
-inc_c  = deg2rad(97.44);  % inclination [rad]
-raan_c = deg2rad(270);    % RAAN [rad]
-aop_c  = deg2rad(0);      % aop [rad]
+sma_c  = 68920.927e3;      % semi-major axis [m] %sma_c = 10000e3;
+ecc_c  = 1e-3;            % eccentricity component in I
+inc_c  = deg2rad(10);  % inclination [rad]
+raan_c = deg2rad(10);    % RAAN [rad]
+aop_c  = deg2rad(10);      % aop [rad]
 M_c    = deg2rad(0);      % mean anomaly [rad]
 
-oe_init_c = [sma_c, ecc_c, inc_c, raan_c, aop_c, M_c]; % combine the above into a single vector
-oe_init_c_j2 = mean2osc(oe_init_c, 1);
+oe_init_c = [sma_c, ecc_c, inc_c, raan_c, aop_c, M_c].'; % combine the above into a single vector
+% oe_init_c_j2 = mean2osc(oe_init_c, 1);
 
-[r_init_c,v_init_c] = koe2pv(oe_init_c_j2, mu); % chief position and velocity in inertial frame, J2-perturbed
+[r_init_c,v_init_c] = koe2pv(oe_init_c, mu); % chief position and velocity in inertial frame, J2-perturbed
 rv_init_c = [r_init_c;v_init_c];
 
 % Helpful parameters
@@ -44,27 +44,27 @@ T = 2*pi*sqrt(sma_c^3/mu); % [sec]
 n = sqrt(mu/sma_c^3); % mean motion
 
 % Initial conditions of the Deputy as QNS ROEs [dsma;dlambda;dex;dey;dix;diy]
-aroe_init1 = [0, 0, 50, 100,0,0]; % m
+aroe_init1 = [0, 0, 50, 100,0,0].'; % m
 roe_init1 = aroe_init1 / sma_c;
 
 % Initial absolute conditions of the deputy
 oe_init_d1 = roe2aoe(oe_init_c,roe_init1);
-oe_init_d1_j2 = mean2osc(oe_init_d1, 1);
 
-[r_init_d,v_init_d] = koe2pv(oe_init_d1_j2, mu); % deputy position and velocity in inertial frame, J2 perturbed
+[r_init_d,v_init_d] = koe2pv(oe_init_d1, mu);
 rv_init_d = [r_init_d;v_init_d];
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Reconfiguration Conditions 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Desired ROE state 
-aroe_des = [0, 0, 100, 100, 0, 0]; % m
+aroe_des = [0, 0, 250, 250, 0, 0].'; % m
+% aroe_des = [0, 0, 50, 1000, 0, 0].'; % m
 
 % Desired reconfiguration time
 dt = 10*T; % 10 orbit periods
 
 % Simulation step size
-sim_step = 10; % s
+sim_step = 100; % s
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Determine optimal maneuver times and magnitudes 
@@ -74,7 +74,7 @@ stm = @(chief_oe, t) chernick_J2_stm(chief_oe, t, rE, mu, J2);
 control_input_matrix = @(chief_oe) chernick_control_matrix(chief_oe, mu);
 
 % Get the optimal maneuver plan for the reconfiguration window
-[t_maneuvers, manuevers, total_cost] = impulsive_control(oe_init_c.', aroe_init1.', aroe_des.', dt, stm, control_input_matrix, rE, mu, J2);
+[t_maneuvers, manuevers, total_cost] = impulsive_control(oe_init_c, aroe_init1, aroe_des, dt, stm, control_input_matrix, rE, mu, J2);
 
 % Round the time
 t_maneuvers = round(t_maneuvers./sim_step).*sim_step;
@@ -106,21 +106,18 @@ for i = 1:length(t_maneuvers)+1
     states_deputy = [states_deputy, propagated_states.'];
 
     % apply maneuver dv
-    if i <= length(t_maneuvers)
+    if i <= length(t_maneuvers)    
         last_state = states_deputy(:, end);
         r_last = last_state(1:3);
         v_last = last_state(4:6);
         dv_RTN = manuevers(:, i);
         % rotate vector:
-        rhat = r_last/norm(r_last);
-        h0 = cross(r_last, v_last);
-        nhat = h0/norm(h0);
-        that = cross(nhat, rhat);
-        C_RTN_to_ECI = [rhat, that, nhat];
-        
-        dv_ECI = C_RTN_to_ECI*dv_RTN;
+        dv_ECI = rtn2eci(r_last, v_last, dv_RTN);
+        % try no maneuvers:
+        % dv_ECI = [0;0;0];
         state_override = [0; 0; 0; dv_ECI];
         states_deputy(:, end) = states_deputy(:, end) + state_override;
+        states_chief(:, end) = states_chief(:, end);
     else
         states_deputy(:, end) = [];
         states_chief(:, end) = [];
@@ -132,7 +129,7 @@ end
 mms2_rtns = zeros(3, length(states_chief));
 mms2_rtn_vs = zeros(3, length(states_chief));
 mean_roes = zeros(6, length(states_chief));
-for i=1:length(states_chief)
+for i=1:length(states_deputy)
     r_chief = states_chief(1:3,i);
     v_chief = states_chief(4:6,i);
 
@@ -207,7 +204,8 @@ xlabel("R (m)")
 ylabel("T (m)")
 zlabel("N (m)")
 grid on;
-axis square;
+axis square equal;
+pbaspect([1,1,1])
 
 
 

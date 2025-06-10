@@ -1,5 +1,5 @@
-function [r_eci] = rtn2eci(r_chief_eci, v_chief_eci, rho_rtn)
-%RTN2ECI Computes ECI position of a vector in RTN
+function [vec_eci] = rtn2eci(r_chief_eci, v_chief_eci, vec_rtn)
+%RTN2ECI Gets ECI representation of rho_rtn vector
 
 r0 = r_chief_eci(:);
 v0 = v_chief_eci(:);
@@ -10,7 +10,6 @@ nhat = h0/norm(h0);
 that = cross(nhat, rhat);
 C_RTN_to_ECI = [rhat, that, nhat];
 
-rho_eci = C_RTN_to_ECI * rho_rtn;
+vec_eci = C_RTN_to_ECI * vec_rtn;
 
-r_eci = r_chief_eci + rho_eci;
 end

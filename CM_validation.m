@@ -1,3 +1,7 @@
+% starting a new file so I don't screw myself over with messing up a file
+% that does work the day before the final is due. Bad coding practice, I
+% know, but I'm desperate.
+
 close all
 % Constants
 J2 = 0.0010826358191967; % Earth's J2 coefficient
@@ -5,8 +9,8 @@ mu = 3.986004415e14; % Earth gravitational parameter [m^3/s^2]
 rE = 6.378136300e6; % Earth radius [m]
 
 % chief AOEs
-AOE_chief = [63781000, 0.6, deg2rad(50.11885), deg2rad(156.7045), deg2rad(58.2343), deg2rad(12)];
-ROEs = [20, 20, 50, 100, 30, 200] / AOE_chief(1); % meters
+AOE_chief = [63781000, 0.6, deg2rad(50.11885), deg2rad(56.7045), deg2rad(58.2343), deg2rad(12)];
+ROEs = [20, 2000, 50, 100, 30, 200] / AOE_chief(1); % meters
 
 AOE_deputy = roe2aoe(AOE_chief, ROEs);
 
@@ -49,6 +53,7 @@ ac = AOE_chief(1);
 Tp = 2*pi*sqrt(ac^3 / MU);
 
 ts = linspace(0, 10*Tp, 1e4);
+ts_2 = linspace(ts(end), ts(end)+10*Tp, 1e4);
 
 dt = ts(2) - ts(1);
 
@@ -57,17 +62,33 @@ opts = odeset("RelTol",5e-14,"AbsTol",1e-17);
 
 [~, states_chief_j2] = ode45(@newton3d_J2, ts, sc, opts);
 [~, states_deputy_j2] = ode45(@newton3d_J2, ts, sd, opts);
-kep_states_chief_j2 = zeros(size(states_chief_j2));
-kep_states_deputy_j2 = zeros(size(states_deputy_j2));
-roes_j2 = zeros(size(states_deputy_j2));
-mean_oes_chief_j2 = zeros(size(states_chief_j2));
-mean_oes_deputy_j2 = zeros(size(states_deputy_j2));
-mean_roes_j2 = zeros(size(states_deputy_j2));
-rtns_j2 = zeros(size(states_deputy_j2));
 
-for i=1:length(ts)
-    state_chief_j2= states_chief_j2(i,:);
-    state_deputy_j2 = states_deputy_j2(i,:);
+s_chief = states_chief_j2(end, :);
+s_deputy = states_deputy_j2(end, :);
+% apply maneuver to deputy. Positive cross-track burn should increase SMA
+maneuver_dv_rtn = [0; 0; 0.01];
+
+maneuver_dv_eci = rtn2eci(s_chief(1:3), s_chief(4:6), maneuver_dv_rtn);
+s_deputy_maneuvered = s_deputy.' + [0; 0; 0; maneuver_dv_eci];
+
+% propagate post-maneuver
+[~, states_chief_j2_post_maneuver] = ode45(@newton3d_J2, ts_2, s_chief, opts);
+[~, states_deputy_j2_post_maneuver] = ode45(@newton3d_J2, ts_2, s_deputy_maneuvered, opts);
+
+all_states_chief = [states_chief_j2; states_chief_j2_post_maneuver];
+all_states_deputy = [states_deputy_j2; states_deputy_j2_post_maneuver];
+
+kep_states_chief_j2 = zeros(size(all_states_chief));
+kep_states_deputy_j2 = zeros(size(all_states_chief));
+roes_j2 = zeros(size(all_states_chief));
+mean_oes_chief_j2 = zeros(size(all_states_chief));
+mean_oes_deputy_j2 = zeros(size(all_states_chief));
+mean_roes_j2 = zeros(size(all_states_chief));
+rtns_j2 = zeros(size(all_states_chief));
+
+for i=1:length(all_states_chief)
+    state_chief_j2= all_states_chief(i,:);
+    state_deputy_j2 = all_states_deputy(i,:);
     kep_chief_j2 = pv2koe(state_chief_j2, MU);
     kep_deputy_j2 = pv2koe(state_deputy_j2, MU);
     kep_states_chief_j2(i,:) = kep_chief_j2;
@@ -98,7 +119,7 @@ end
 
 
 % calculate STM propagation
-stm_roes = zeros(size(states_deputy_j2));
+stm_roes = zeros(size(all_states_deputy));
 stm_roes(1,:) = ROEs.';
 
 for i = 2:length(ts)
@@ -107,6 +128,31 @@ for i = 2:length(ts)
     stm_roe = stm * stm_roes(i-1,:).';
     stm_roes(i,:) = stm_roe;
 end
+
+% apply maneuver via control input matrix
+
+phi = chernick_J2_stm(kep_states_chief_j2(i,:), dt, rE, MU, J2);
+koe = kep_states_chief_j2(i,:);
+
+e = koe(2);
+true_anom = koe(6);
+mean_anom = true2mean(true_anom, e);
+B = chernick_control_matrix([koe(1:5), mean_anom], MU);
+
+stm_roes(i,:)
+roe_post_maneuver = phi * stm_roes(i,:).' + B * maneuver_dv_rtn
+
+stm_roes(1+length(ts),:) = roe_post_maneuver;
+
+for i = length(ts)+2:length(ts)+length(ts_2)
+    % STM calcs
+    stm = chernick_J2_stm(kep_states_chief_j2(i,:), dt, rE, MU, J2);
+    stm_roe = stm * stm_roes(i-1,:).';
+    stm_roes(i,:) = stm_roe;
+end
+
+
+
 % 
 % as = kep_states_chief_j2(:,1);
 % es = kep_states_chief_j2(:,2);

@@ -26,7 +26,7 @@ Md = true2mean(nud, ed);
 
 da = (ad-ac)/ac;
 eta = sqrt(1-ec^2);
-dlambda = Md - Mc + eta*(wd - wc + (raand - raanc)*cos(ic));
+dlambda = angdiff(Mc, Md) + eta*(angdiff(wc, wd) + angdiff(raanc, raand)*cos(ic));
 dex = ed*cos(wd) - ec*cos(wc);
 dey = ed*sin(wd) - ec*sin(wc);
 dix = id - ic;

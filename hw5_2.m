@@ -29,7 +29,7 @@ maoe_chief_f = [maoe_chief_i(1:end-1); nu_apogee];
 
 % convert position in RTN frame to cartesian
 deputy_pos_RTN = [0; 0; 10000]; % meters
-deputy_pos_ECI = rtn2eci(pos_chief_f_eci, vel_chief_f_eci, deputy_pos_RTN);
+deputy_pos_ECI = pos_chief_f_eci + rtn2eci(pos_chief_f_eci, vel_chief_f_eci, deputy_pos_RTN);
 
 % convert desired orbital elements
 % assume deputy velocity = chief velocity
