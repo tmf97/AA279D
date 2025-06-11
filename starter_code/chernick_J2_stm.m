@@ -42,15 +42,22 @@ T = sin(i)^2;
 wdot = kappa*Q;
 
 
-% assuming exi = exf = ex, eyi = eyf = ey.
+wf = wdot * t + w;
+
+% eccentricity dependent parameters
+exi = e*cos(w);
+eyi = e*sin(w);
+
+exf = e*cos(wf);
+eyf = e*sin(wf);
 
 Phi = [
-    1,                              0,  0,                                  0,                                  0,                  0;
-    -7*kappa*eta*P*t - (3/2)*n*t,   1,  7*kappa*ex*P*t/eta,                 7*kappa*ey*P*t/eta,                 -7*kappa*eta*S*t,   0;
-    3.5*kappa*ey*Q*t,               0,  cos(wdot*t) - 4*kappa*ex*ey*G*Q*t,  -sin(wdot*t)-4*kappa*ey*ey*G*Q*t,   5*kappa*ey*S*t,     0;
-    -3.5*kappa*ex*Q*t,              0,  sin(wdot*t) + 4*kappa*ex*ex*G*Q*t,  cos(wdot*t)-4*kappa*ey*ex*G*Q*t,    -5*kappa*ex*S*t,    0;
-    0,                              0,  0,                                  0,                                  1,                  0;
-    3.5*kappa*S*t,                  0,  -4*kappa*ex*G*S*t,                  -4*kappa*ey*G*S*t,                  2*kappa*T*t,        1;
+    1,                              0,  0,                                      0,                                  0,                  0;
+    -7*kappa*eta*P*t - (3/2)*n*t,   1,  7*kappa*exi*P*t/eta,                    7*kappa*eyi*P*t/eta,                -7*kappa*eta*S*t,   0;
+    3.5*kappa*eyf*Q*t,              0,  cos(wdot*t) - 4*kappa*exi*eyf*G*Q*t,    -sin(wdot*t)-4*kappa*eyi*eyf*G*Q*t, 5*kappa*eyf*S*t,     0;
+    -3.5*kappa*exf*Q*t,             0,  sin(wdot*t) + 4*kappa*exi*exf*G*Q*t,    cos(wdot*t)-4*kappa*eyi*exf*G*Q*t,  -5*kappa*exf*S*t,    0;
+    0,                              0,  0,                                      0,                                  1,                  0;
+    3.5*kappa*S*t,                  0,  -4*kappa*exi*G*S*t,                     -4*kappa*eyi*G*S*t,                 2*kappa*T*t,        1;
     ];
 
 % assume near-circular orbits for now:

@@ -57,11 +57,11 @@ rv_init_d = [r_init_d;v_init_d];
 % Reconfiguration Conditions 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Desired ROE state 
-aroe_des = [0, 0, 250, 250, 0, 0].'; % m
+aroe_des = [1000, 0, 50, 100, 0, 0].'; % m
 % aroe_des = [0, 0, 50, 1000, 0, 0].'; % m
 
 % Desired reconfiguration time
-dt = 10*T; % 10 orbit periods
+dt = 2*T; % 10 orbit periods
 
 % Simulation step size
 sim_step = 100; % s
@@ -74,7 +74,14 @@ stm = @(chief_oe, t) chernick_J2_stm(chief_oe, t, rE, mu, J2);
 control_input_matrix = @(chief_oe) chernick_control_matrix(chief_oe, mu);
 
 % Get the optimal maneuver plan for the reconfiguration window
-[t_maneuvers, manuevers, total_cost] = impulsive_control(oe_init_c, aroe_init1, aroe_des, dt, stm, control_input_matrix, rE, mu, J2);
+[t_maneuvers, maneuvers, total_cost] = impulsive_control(oe_init_c, aroe_init1, aroe_des, dt, stm, control_input_matrix, rE, mu, J2);
+aDdalpha = aroe_des - aroe_init1;
+dv_LB = dv_lower_bound(aDdalpha,sma_c,ecc_c, dt,mu);
+
+disp("Total Delta-V Cost (m/s):")
+disp(total_cost)
+disp("Delta-V Lower Bound(m/s):")
+disp(dv_LB)
 
 % Round the time
 t_maneuvers = round(t_maneuvers./sim_step).*sim_step;
@@ -89,6 +96,7 @@ states_deputy = rv_init_d;
 propagation_times_start = [0, t_maneuvers];
 propagation_times_end = [t_maneuvers, dt];
 times = [];
+dvs = [];
 for i = 1:length(t_maneuvers)+1
     t_start = propagation_times_start(i);
     t_end = propagation_times_end(i);
@@ -110,11 +118,9 @@ for i = 1:length(t_maneuvers)+1
         last_state = states_deputy(:, end);
         r_last = last_state(1:3);
         v_last = last_state(4:6);
-        dv_RTN = manuevers(:, i);
+        dv_RTN = maneuvers(:, i);
         % rotate vector:
         dv_ECI = rtn2eci(r_last, v_last, dv_RTN);
-        % try no maneuvers:
-        % dv_ECI = [0;0;0];
         state_override = [0; 0; 0; dv_ECI];
         states_deputy(:, end) = states_deputy(:, end) + state_override;
         states_chief(:, end) = states_chief(:, end);
@@ -122,6 +128,17 @@ for i = 1:length(t_maneuvers)+1
         states_deputy(:, end) = [];
         states_chief(:, end) = [];
     end
+
+    % dv accounting:
+    if i > 1
+        prior_dv = dvs(end);
+        dv_mag = norm(dv_RTN);
+    else
+        dv_mag = 0;
+        prior_dv = 0;
+    end
+
+    dvs = [dvs, (prior_dv+dv_mag)*ones(1,length(prop_ts))];
 end
 
 
@@ -209,16 +226,16 @@ pbaspect([1,1,1])
 
 
 
-% 3D!
-figure
-grid on
-hold on
-axis equal
-Re = 6378000; % m
-[X,Y,Z] = sphere;
-surf(X*Re, Y*Re, Z*Re, 'DisplayName', 'Earth')
-plot3(states_chief(1,:), states_chief(2,:), states_chief(3,:))
-plot3(states_deputy(1,:), states_deputy(2,:), states_deputy(3,:))
+% % 3D!
+% figure
+% grid on
+% hold on
+% axis equal
+% Re = 6378000; % m
+% [X,Y,Z] = sphere;
+% surf(X*Re, Y*Re, Z*Re, 'DisplayName', 'Earth')
+% plot3(states_chief(1,:), states_chief(2,:), states_chief(3,:))
+% plot3(states_deputy(1,:), states_deputy(2,:), states_deputy(3,:))
 
 
 % plot ROEs
@@ -260,5 +277,33 @@ grid on;
 axis square;
 
 hold off
+
+figure
+subplot(2,1,1)
+hold on
+plot(times, abs(sma_c*mean_roes(1, :) - aroe_des(1)), "DisplayName", "$\delta a$")
+plot(times, abs(sma_c*mean_roes(2, :) - aroe_des(2)), "DisplayName", "$\delta\lambda$")
+plot(times, abs(sma_c*mean_roes(3, :) - aroe_des(3)), "DisplayName", "$\delta e_x$")
+plot(times, abs(sma_c*mean_roes(4, :) - aroe_des(4)), "DisplayName", "$\delta e_y$")
+plot(times, abs(sma_c*mean_roes(5, :) - aroe_des(5)), "DisplayName", "$\delta i_x$")
+plot(times, abs(sma_c*mean_roes(6, :) - aroe_des(6)), "DisplayName", "$\delta i_y$")
+legend('Location','eastoutside')
+xlabel("Orbital Periods")
+ylabel("ROE Error Magnitude (m)")
+ylim([1e-5, 1e5]);
+yscale log
+grid on;
+hold off
+
+subplot(2,1,2);
+hold on
+plot(times, dvs, "DisplayName","Controller")
+yline(dv_LB, "DisplayName","Lower Bound")
+xlabel("Orbital Periods")
+ylabel("$\Delta V$ Consumed (m/s)")
+legend('Location','eastoutside')
+grid on
+hold off
+
 
 

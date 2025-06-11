@@ -36,15 +36,20 @@ function [t_maneuvers, manuevers, total_cost] = impulsive_control(chief_oe, init
     a   = chief_oe(1);
     e   = chief_oe(2); 
     i   = chief_oe(3); 
-    RAAN= chief_oe(4); 
-    w   = chief_oe(5); 
-    M  = chief_oe(6);
+    % RAAN= chief_oe(4); 
+    % w   = chief_oe(5); 
+    % M  = chief_oe(6);
 
     desired_roe = desired_aroe / a;
     initial_roe = initial_aroe / a;
+    % STM should be applied to mean ROEs, but this will have to do for now
+    % initial_roe_mean = osc2mean(initial_roe, 1);
     Droe = desired_roe - STM(chief_oe, dt) * initial_roe;
     aDroe = a * Droe; 
 
+    disp('Initial Dimensionalized ROEs:')
+    T = array2table([initial_aroe, desired_aroe, aDroe].', 'VariableNames', {'ada', 'adlambda', 'ade_x', 'ade_y', 'adi_x', 'adi_y'}, 'RowName', {'Initial', 'Desired', 'Pseudostate'});
+    disp(T);
     %% Calculate the drift rates
     % Here we want to calculate the drift rates of RAAN, AOP, and M
     n       = sqrt(mu/chief_oe(1)^3);                  % mean motion
@@ -56,6 +61,7 @@ function [t_maneuvers, manuevers, total_cost] = impulsive_control(chief_oe, init
     RAAN_dot = -2*cos(i)*kappa;
     aop_dot  = kappa * Q;
     M_dot    = n + kappa*eta*P;
+    
 
     %% Calculate the reachable delta-v
     [dvmin_da, dvmin_dlambda, dvmin_de, dvmin_di] = calculate_reachable_delta_v(aDroe, chief_oe, dt, n, STM, CM);
@@ -68,6 +74,11 @@ function [t_maneuvers, manuevers, total_cost] = impulsive_control(chief_oe, init
     %                         dvmin_dom == 2 - dominance dlambda, 
     %                         dvmin_dom == 3 - dominance de
     [dvmin, dvmin_dom] = max([dvmin_da, dvmin_dlambda, dvmin_de]);
+    
+    disp('Reachable delta-vs:')
+    T = array2table([dvmin_da, dvmin_dlambda, dvmin_de, dvmin_di].', 'VariableNames', {'dv_min (m/s)'}, 'RowName', {'da', 'dlambda', 'de', 'di'});
+    disp(T);
+
 
     %% Compute the optimal maneuver times
     % Implement compute_optimal_maneuver_times_ip(), and
@@ -88,7 +99,7 @@ function [t_maneuvers, manuevers, total_cost] = impulsive_control(chief_oe, init
     % determine_best_maneuver_plan_oop() using solve_linear_system.
     
     % NOTE: manually edited from aDroe to Droe!
-    [ts_ip, dvs_ip, cost_ip] = determine_best_maneuver_plan_ip(Sn_ip, dv_ip, T_opts_ip, m_ip, Droe, dvmin, dvmin_dom);
+    [ts_ip, dvs_ip, cost_ip] = determine_best_maneuver_plan_ip(Sn_ip, dv_ip, T_opts_ip, m_ip, aDroe, dvmin, dvmin_dom);
     [ts_oop, dvs_oop, cost_oop] = determine_best_maneuver_plan_oop(dv_oop, T_opts_oop, dvmin_di);
   
     %% Create the maneuver plan
@@ -104,6 +115,9 @@ function [t_maneuvers, manuevers, total_cost] = impulsive_control(chief_oe, init
     t_maneuvers = mat(:, 1).';
     manuevers = mat(:, 2:4).';
     total_cost = sum([cost_ip, cost_oop]);
+    disp('Maneuvers:')
+    T = array2table(mat, 'VariableNames', {'time (s)', 'dv_R (m/s)', 'dv_T (m/s)', 'dv_N (m/s)'}, 'RowName', {'Maneuver 1', 'Maneuver 2', 'Maneuver 3', 'Maneuver 4'});
+    disp(T);
     disp(dvmin_dom)
 end
 
@@ -148,16 +162,16 @@ function [dvmin_da, dvmin_dlambda, dvmin_de, dvmin_di] = calculate_reachable_del
     dvmin_de = norm(aDde_des) / aDde_max_norm; 
 
     % dvmin - dom dlambda - limit to tangential burns only
-    aDdalpha0 = STM(chief_oe, dt) * CM(chief_oe) * [0;1;0];
+    aDdalpha0 = STM(chief_oe, dt) * CM(chief_oe) * [0;1;0] * chief_oe(1);
     aDda0 = aDdalpha0(1);
     aDdlambda0 = aDdalpha0(2);
     
-    m = -2*aDda0 / (-aDdlambda0);
+    m = 2*aDda0 / aDdlambda0;
 
     if aDroe(2) < 0
-        dvmin_dlambda = min([(m*aDroe(2) - aDroe(1)) / (m*aDdlambda0 - aDda0), (m*aDroe(2) - aDroe(1) / aDda0)]);
+        dvmin_dlambda = min([(m*aDroe(2) - aDroe(1)) / (m*aDdlambda0 - aDda0), (m*aDroe(2) - aDroe(1)) / aDda0]);
     else
-        dvmin_dlambda = min([(-m*aDroe(2) + aDroe(1))/(m*aDdlambda0 - aDda0), (-m*aDroe(2) + aDroe(1))/aDda0]);
+        dvmin_dlambda = min([(-m*aDroe(2) + aDroe(1))/ (m*aDdlambda0 - aDda0), (-m*aDroe(2)+ aDroe(1)) / aDda0]);
     end
 
     % dvmin - dom di
@@ -196,7 +210,7 @@ function [T_opts_ip, m_ip] = compute_optimal_maneuver_times_ip(aDroe, chief_oe, 
         - m_ip: value of m needed to get the first maneuver time to be in
                 the future (ie t > 0)
     %}
-    % TODO Calculate the optimal time to maneuver (may be in the past!)
+    % Calculate the optimal time to maneuver (may be in the past!)
     a = chief_oe(1);
     w = chief_oe(5);
 
@@ -209,10 +223,15 @@ function [T_opts_ip, m_ip] = compute_optimal_maneuver_times_ip(aDroe, chief_oe, 
     else
         m_ip = 0;
     end
+    assert(m_ip >= 0)
 
-    % compute k
+    % compute k    
     T0 = (atan2(Ddey,Ddex) + m_ip*pi - (aop_dot*dt + w))/M_dot;
-    k_max = floor((dt - T0) * n / pi);
+    t0 = wrapTo2Pi(chief_oe(6)) / n;
+    if T0 < t0; T0 = T0 + 2*pi / n; end
+
+    k_max = max(floor((dt - T0) * n / pi), 3);
+    assert(k_max > 0)
 
     T_opts_ip = T0 + (0:k_max) * pi / n;
     
@@ -261,9 +280,20 @@ function [T_opts_oop, m_oop] = compute_optimal_maneuver_times_oop(aDroe, chief_o
     else
         m_oop = ceil((1/pi)*(w-atan2(Ddiy, Ddix)));
     end
+    assert(m_oop >= 0)
 
     numerator = atan2(Ddiy, Ddix) - w + m_oop*pi;
     T0 = numerator / denom;
+
+    % make sure the maneuver is in the future. No time travelling allowed
+    % (yet)
+
+    % time corresponding to your current non-zero M0 
+    t0 = wrapTo2Pi(chief_oe(6)) / n;
+
+    if T0 < t0; T0 = T0 + 2*pi / n; end
+    k_max = floor((dt - T0) * n / pi);
+    assert(k_max > 0)
 
     % Determine when are all the times we could do this maneuver within our
     % maneuver window
@@ -328,8 +358,6 @@ function [Sn_ip, dv_ip] = compute_nested_reachable_sets_and_deltav_ip(T_opts_ip,
             dvt = 0;
             if aDroe(2) < 0 && k == 1 || (aDroe(2) > 0 && k==length(T_opts_ip))
                 dvt = 1;
-            elseif k==2
-                dvr=1;
             elseif (aDroe(2) > 0 && k == 1) || (aDroe(2) < 0 && k==length(T_opts_ip))
                 dvt = -1;
             else
@@ -357,7 +385,7 @@ function [Sn_ip, dv_ip] = compute_nested_reachable_sets_and_deltav_ip(T_opts_ip,
         chief_oe_k = chief_oe + J2_propagation;
         
         Gamma = STM(chief_oe_k, dt - t) * CM(chief_oe_k);
-        Sn_ip(:,k) = Gamma * dv_ip(:,k) * dvmin * chief_oe_k(1); % XXX - do we need to multiply by a here??
+        Sn_ip(:,k) = Gamma * dv_ip(:,k) * dvmin * chief_oe(1); % remember to multiply by sma!
     end
 end
 
@@ -403,7 +431,7 @@ function [Sn_oop, dv_oop] = compute_nested_reachable_sets_and_deltav_oop(T_opts_
 
     for k = 1:length(T_opts_oop)
         % dom di - always
-        km = k + m_oop;
+        km = k + m_oop - 1; % god I can't stand how much I simultaneously love and hate MATLAB's 1-indexing.
         if mod(km, 2) == 0
             dv_oop(:,k) = [0; 0; 1];
         else
@@ -420,7 +448,7 @@ function [Sn_oop, dv_oop] = compute_nested_reachable_sets_and_deltav_oop(T_opts_
         chief_oe_k = chief_oe + J2_propagation;
         
         Gamma = STM(chief_oe_k, dt - t) * CM(chief_oe_k);
-        Sn_oop(:, k) = Gamma * dv_oop(:, k) * dvmin_di * chief_oe_k(1);
+        Sn_oop(:, k) = Gamma * dv_oop(:, k) * dvmin_di * chief_oe(1); % remember to multiply by sma!
     end
 end
 
@@ -475,59 +503,90 @@ function [ts_ip, dvs_ip, cost_ip] = determine_best_maneuver_plan_ip(Sn_ip, dv_ip
     combos = nchoosek(1:length(T_opts_ip), 3);
 
     for i = 1:size(combos,1)
+        suboptimal = false;
         inds = combos(i,:);
 
         % Nested reachable sets
         viable_Sn = Sn_ip(:, inds);
-        Dda1 = viable_Sn(:, 1);
-        Dda2 = viable_Sn(:, 2);
-        Dda3 = viable_Sn(:, 3);
+        Dda1 = viable_Sn(:, 1); % Maneuver 1
+        Dda2 = viable_Sn(:, 2); % Maneuver 2
+        Dda3 = viable_Sn(:, 3); % Maneuver 3
         
         if dvmin_dom == 1 % dom da
             % TODO Effect of maneuver on de vector wrt desired pseudostate
+            for j=1:length(inds)
+              if (aDroe(1) > 0 && mod(m_ip+inds(j)-1,2) ~= 0) || (aDroe(1) < 0 && mod(m_ip+inds(j)-1, 2) == 0)
+                  aDemag_sign(j) = -1;
+              else
+                  aDemag_sign(j) = 1;
+              end
+            end
+
             A = [1,                 1,                  1;
-                 Dda1(2),           Dda2(2),            Dda2(2);
-                 norm(Dda1(3:4)),   norm(Dda2(3:4)),    norm(Dda3(3:4))];
+                 Dda1(2),           Dda2(2),            Dda3(2);
+                 aDemag_sign(1)*norm(Dda1(3:4)), aDemag_sign(2)*norm(Dda2(3:4)), aDemag_sign(3)*norm(Dda3(3:4))];
+
             b = [1; aDroe(2); norm(aDroe(3:4))];
             cs = solve_linear_system(A, b);
 
         elseif dvmin_dom == 2 % dom dl
-            % TODO Optimal linear system - none
-            % cs = ??;
-            % shit outta luck here bud
-            cs = [1;1;1];
+            % Invoke the suboptimal solver later
+            cs = [2;2;2];
 
         elseif dvmin_dom == 3 % dom de
-            % TODO Optimal linear system - Table 6.4
+            % Optimal linear system - Table 6.4
+            % Pol - I think what you have here will work, but I have the
+            % second and third row flipped for A and b. I don't think it
+            % will break your solution, but just noting it in case
+            % everything else doesn't fix things!
             A = [1,        1,         1;
                  Dda1(2),  Dda2(2),   Dda3(2);
                  Dda1(1),  Dda2(1),   Dda3(1);];
             b = [1; aDroe(2); aDroe(1)];
             cs = solve_linear_system(A, b);
         end 
-        disp(cs)
+        
         if any(cs < 0) || any(cs > 1) % sub optimal solution
-            % TODO Effect of maneuver on de vector wrt desired pseudostate
+            % Effect of maneuver on de vector wrt desired pseudostate
+            if dvmin_dom == 1
+                 for j=1:length(inds)
+                      if (aDroe(1) > 0 && mod(m_ip+inds(j)-1,2) ~= 0) || (aDroe(1) < 0 && mod(m_ip+inds(j)-1, 2) == 0)
+                          aDemag_sign(j) = -1;
+                      else
+                          aDemag_sign(j) = 1;
+                      end
+                 end
+             else
+                 aDemag_sign = [1;1;1];
+             end
             
-            % TODO Suboptimal linear system
-            A = [norm(Dda1(3:4)),  norm(Dda2(3:4)),   norm(Dda3(3:4));
+            % Suboptimal linear system
+            A = [aDemag_sign(1)*norm(Dda1(3:4)),  aDemag_sign(2)*norm(Dda2(3:4)),   aDemag_sign(3)*norm(Dda3(3:4)); % DONE: Pol: now multply this top row by aDemag_sign
                  Dda1(2),          Dda2(2),           Dda3(2);
                  Dda1(1),          Dda2(1),           Dda3(1);];
             b = [norm(aDroe(3:4)); aDroe(2); aDroe(1)];
-            cs = solve_linear_system(A, b);
+            cs = A \ b;
+            suboptimal = true;
         end
 
-        % TODO Determine the best solution
-        dvs_ip_cand = cs .* dv_ip(:, inds);
+        % Determine the best solution
+        dvs_ip_cand = cs.' .* dv_ip(:, inds) * dvmin; % need to multiply by dvmin! Otherwise this is unitless
 
+        % different from starter code implementation, but equivalent and 
+        % more intuitive imo
         if sum(vecnorm(dvs_ip_cand)) < cost_ip
-            disp(inds)
             dvs_ip = dvs_ip_cand;
             ts_ip = T_opts_ip(inds);
             cost_ip = sum(vecnorm(dvs_ip_cand));
+            cs_ip = cs;
+            if suboptimal
+                disp("Suboptimal Solution used!:")
+                disp(dvs_ip)
+            end
         end
-        disp(cs)
     end
+    disp(cs_ip)
+    disp(dvs_ip)
 end
 
 function [ts_oop, dvs_oop, cost_oop] = determine_best_maneuver_plan_oop(dv_oop, T_opts_oop, dvmin_di)
@@ -552,8 +611,6 @@ function [ts_oop, dvs_oop, cost_oop] = determine_best_maneuver_plan_oop(dv_oop, 
         - cost_ip - total cost of the reconfiguration (m/s)
     %}
     
-    % TODO
-    % c = 1;
     ts_oop = T_opts_oop(end);
     cost_oop = norm(dvmin_di);
     dvs_oop = dv_oop(:,end)*dvmin_di;
