@@ -251,7 +251,7 @@ plot(plot_t, (ac * (estimated_states(p, :) - true_roes(p, :))), "DisplayName", "
 % plot(plot_t, abs(ac * (pre_measurement_state_estimate(p, :)- true_roes(p, :))), "DisplayName", "Pre-Measurement Estimate Error")
 fill([plot_t, fliplr(plot_t)], ac * [P_mags(p,:), fliplr(-P_mags(p,:))], 'm', 'FaceAlpha', 0.1, 'EdgeColor', 'none')
 ylabel("$\Delta a \delta i_x$ [m]", Interpreter='latex')
-
+xlabel("Time [Orbital Periods]")
 
 
 p=6;
@@ -263,6 +263,4 @@ plot(plot_t, (ac * (estimated_states(p, :) - true_roes(p, :))), "DisplayName", "
 fill([plot_t, fliplr(plot_t)], ac * [P_mags(p,:), fliplr(-P_mags(p,:))], 'm', 'FaceAlpha', 0.1, 'EdgeColor', 'none')
 
 ylabel("$\Delta a \delta i_y$ [m]", Interpreter='latex')
-xscale log
 
-xlabel("Time [Orbital Periods]")

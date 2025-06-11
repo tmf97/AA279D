@@ -66,7 +66,7 @@ opts = odeset("RelTol",5e-14,"AbsTol",1e-17);
 s_chief = states_chief_j2(end, :);
 s_deputy = states_deputy_j2(end, :);
 % apply maneuver to deputy. Positive cross-track burn should increase SMA
-maneuver_dv_rtn = [0; 0; 0.01];
+maneuver_dv_rtn = [0; 0.01; 0.01];
 
 maneuver_dv_eci = rtn2eci(s_chief(1:3), s_chief(4:6), maneuver_dv_rtn);
 s_deputy_maneuvered = s_deputy.' + [0; 0; 0; maneuver_dv_eci];

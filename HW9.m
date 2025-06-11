@@ -1,6 +1,8 @@
 % HW9
 % Oh yeah, it's all coming together
 % Constants
+close all; clear; clc;
+
 J2 = 0.0010826358191967; % Earth's J2 coefficient
 mu = 3.986004415e14; % Earth gravitational parameter [m^3/s^2]
 rE = 6.378136300e6; % Earth radius [m]
@@ -21,7 +23,6 @@ set(groot,'defaultLegendInterpreter','latex');
 % additional functions. Everything is `impulsive_control.m` should have
 % function headers at a minimum though. 
 
-close all; clear; clc;
 
 % Integration
 options = odeset('RelTol',1e-12,'AbsTol',1e-12); % tolerances
@@ -61,7 +62,8 @@ rv_init_d = [r_init_d;v_init_d];
 % Reconfiguration Conditions 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Desired ROE state 
-aroe_des = [1000, 0, 50, 100, 0, 0].'; % m
+% aroe_des = [1000, 0, 50, 100, 0, 0].'; % m
+aroe_des = [1000, 1000, 500, 2000, 100, 100].'; % m
 % aroe_des = [0, 0, 50, 1000, 0, 0].'; % m
 
 % Desired reconfiguration time

@@ -57,7 +57,7 @@ rv_init_d = [r_init_d;v_init_d];
 % Reconfiguration Conditions 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Desired ROE state 
-aroe_des = [1000, 0, 50, 100, 0, 0].'; % m
+aroe_des = [1000, 1000, 500, 2000, 100, 100].'; % m
 % aroe_des = [0, 0, 50, 1000, 0, 0].'; % m
 
 % Desired reconfiguration time
@@ -289,8 +289,8 @@ plot(times, abs(sma_c*mean_roes(5, :) - aroe_des(5)), "DisplayName", "$\delta i_
 plot(times, abs(sma_c*mean_roes(6, :) - aroe_des(6)), "DisplayName", "$\delta i_y$")
 legend('Location','eastoutside')
 xlabel("Orbital Periods")
-ylabel("ROE Error Magnitude (m)")
-ylim([1e-5, 1e5]);
+ylabel("ROE Errorn Magnitude (m)")
+ylim([1e-3, 1e5]);
 yscale log
 grid on;
 hold off

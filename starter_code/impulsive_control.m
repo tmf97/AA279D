@@ -230,7 +230,8 @@ function [T_opts_ip, m_ip] = compute_optimal_maneuver_times_ip(aDroe, chief_oe, 
     t0 = wrapTo2Pi(chief_oe(6)) / n;
     if T0 < t0; T0 = T0 + 2*pi / n; end
 
-    k_max = max(floor((dt - T0) * n / pi), 3);
+    % k_max = max(floor((dt - T0) * n / pi), 3);
+    k_max = floor((dt - T0) * n / pi);
     assert(k_max > 0)
 
     T_opts_ip = T0 + (0:k_max) * pi / n;
